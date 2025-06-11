@@ -1,0 +1,39 @@
+{
+  "actions": [
+    {
+      "name": "xpathWelcomeTestuserAutoToYourTalentManagementCenter",
+      "pageUrl": "https://qar-1-qa-uw2-us-int-ls-qa.csodqa.com/LMS/catalog/Welcome.aspx?tab_page_id=-67",
+      "type": "click",
+      "xpath": "/html[1]/body[1]/form[1]/div[6]/div[1]/div[1]/h1[1]"
+    },
+    {
+      "name": "xpathWelcomeTestuserAutoToYourTalentManagementCenter",
+      "pageUrl": "https://qar-1-qa-uw2-us-int-ls-qa.csodqa.com/LMS/catalog/Welcome.aspx?tab_page_id=-67",
+      "type": "click",
+      "xpath": "/html[1]/body[1]/form[1]/div[6]/div[1]/div[1]/h1[1]"
+    },
+    {
+      "name": "xpathWelcomeTestuserAutoToYourTalentManagementCenter",
+      "pageUrl": "https://qar-1-qa-uw2-us-int-ls-qa.csodqa.com/LMS/catalog/Welcome.aspx?tab_page_id=-67",
+      "type": "click",
+      "xpath": "/html[1]/body[1]/form[1]/div[6]/div[1]/div[1]/h1[1]"
+    },
+    {
+      "name": "xpathGenerated3deccc",
+      "pageUrl": "https://qar-1-qa-uw2-us-int-ls-qa.csodqa.com/LMS/catalog/Welcome.aspx?tab_page_id=-67",
+      "type": "click",
+      "xpath": "//span[normalize-space(text())=\"Show Navigation Menu\"]"
+    },
+    {
+      "name": "xpathUniversalProfile",
+      "pageUrl": "https://qar-1-qa-uw2-us-int-ls-qa.csodqa.com/LMS/catalog/Welcome.aspx?tab_page_id=-67",
+      "type": "click",
+      "xpath": "//a[normalize-space(text())=\"Universal Profile\"]"
+    }
+  ],
+  "visitedPages": [
+    "https://qar-1-qa-uw2-us-int-ls-qa.csodqa.com/LMS/catalog/Welcome.aspx?tab_page_id=-67",
+    "https://qar-1-qa-uw2-us-int-ls-qa.csodqa.com/phnx/driver.aspx?routename=Social/UniversalProfile/Bio&TargetUser=120126&tab_page_id=-20016001"
+  ],
+  "testName": "nhk"
+}
