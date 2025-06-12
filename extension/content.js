@@ -2,11 +2,12 @@ let actions = [];
 let visitedUrls = new Set();
 let inputDebounce = {};
 
-chrome.storage.local.get(['recordedActions', 'visitedPages'], (data) => {
+// 🔄  Re-hydrate state whenever this script loads
+chrome.storage.local.get(['recordedActions', 'visitedPages'], data => {
   actions = data.recordedActions || [];
   (data.visitedPages || []).forEach(url => visitedUrls.add(url));
   visitedUrls.add(location.href);
-  chrome.storage.local.set({ visitedPages: Array.from(visitedUrls) });
+  chrome.storage.local.set({ visitedPages: [...visitedUrls] });
 });
 
 window.addEventListener('popstate', trackPage);
