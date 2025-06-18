@@ -2,22 +2,31 @@ let actions = [];
 let visitedUrls = new Set();
 let inputDebounce = {};
 
-// 🔄  Re-hydrate state whenever this script loads
+// ✅ Rehydrate state on every page load
 chrome.storage.local.get(['recordedActions', 'visitedPages'], data => {
   actions = data.recordedActions || [];
-  (data.visitedPages || []).forEach(url => visitedUrls.add(url));
+  visitedUrls = new Set(data.visitedPages || []);
   visitedUrls.add(location.href);
-  chrome.storage.local.set({ visitedPages: [...visitedUrls] });
+
+  console.log(`[Recorder] Page loaded: ${location.href}`);
+  console.log(`[Recorder] Restored actions (${actions.length} total):`);
+  actions.forEach((a, i) => console.log(`  [${i + 1}] ${a.type} - ${a.name} - ${a.xpath} - ${a.pageUrl}`));
+
+  chrome.storage.local.set({
+    visitedPages: Array.from(visitedUrls),
+    recordedActions: actions
+  });
 });
 
-window.addEventListener('popstate', trackPage);
-window.addEventListener('hashchange', trackPage);
+// ✅ Track new URLs
+window.addEventListener('popstate', saveCurrentPageInfo);
+window.addEventListener('hashchange', saveCurrentPageInfo);
+window.addEventListener('DOMContentLoaded', saveCurrentPageInfo);
 
-function trackPage() {
+function saveCurrentPageInfo() {
   visitedUrls.add(location.href);
   chrome.storage.local.set({ visitedPages: Array.from(visitedUrls) });
 }
-
 
 // ✅ Record input events with debounce
 function recordInput(e) {
@@ -29,29 +38,33 @@ function recordInput(e) {
 
   clearTimeout(inputDebounce[xpath]);
   inputDebounce[xpath] = setTimeout(() => {
-    const last = [...actions].reverse().find(a => a.type === 'input' && a.xpath === xpath);
+    const last = [...actions].reverse().find(a => a.type === 'input' && a.xpath === xpath && a.pageUrl === pageUrl);
     if (!last || last.value !== value) {
-      actions.push({ type: 'input', xpath, name, value, pageUrl });
-      chrome.storage.local.set({ recordedActions: actions, visitedPages: Array.from(visitedUrls) });
+      const action = { type: 'input', xpath, name, value, pageUrl };
+      actions.push(action);
+      console.log(`[Recorder] Recorded input: ${name} - ${xpath}`);
+      chrome.storage.local.set({ recordedActions: actions });
     }
   }, 300);
 }
 
-// ✅ Record click events with AI fallback
+// ✅ Record click events
 function recordClick(e) {
   const el = e.target;
   const xpath = getXPath(el);
   const pageUrl = location.href;
   const domContext = getDOMContext(el);
 
-  chrome.runtime.sendMessage({ type: 'generate-ai-name', xpath, tag: el.tagName, domContext }, (response) => {
+  chrome.runtime.sendMessage({ type: 'generate-ai-name', xpath, tag: el.tagName, domContext }, response => {
     const name = response?.name || generateName(el);
-    actions.push({ type: 'click', xpath, name, pageUrl });
-    chrome.storage.local.set({ recordedActions: actions, visitedPages: Array.from(visitedUrls) });
+    const action = { type: 'click', xpath, name, pageUrl };
+    actions.push(action);
+    console.log(`[Recorder] Recorded click: ${name} - ${xpath}`);
+    chrome.storage.local.set({ recordedActions: actions });
   });
 }
 
-// ✅ DOM Context for AI naming
+// ✅ Get nearby context
 function getDOMContext(el) {
   const container = document.createElement('div');
   const parent = el.closest('form') || el.closest('section') || el.parentNode;
@@ -60,7 +73,7 @@ function getDOMContext(el) {
   return container.innerText.trim().slice(0, 1000);
 }
 
-// ✅ Start and Stop Recording
+// ✅ Start/Stop logic
 function startRecording() {
   console.log('[Recorder] Started');
   document.addEventListener('click', recordClick, true);
@@ -74,7 +87,7 @@ function stopRecording() {
 
   const testName = prompt("Enter a custom test name (optional):");
 
-  chrome.runtime.sendMessage({ type: 'ai-name-actions', actions }, (response) => {
+  chrome.runtime.sendMessage({ type: 'ai-name-actions', actions }, response => {
     const output = {
       actions: response?.success ? response.actions : actions,
       visitedPages: Array.from(visitedUrls),
@@ -86,10 +99,9 @@ function stopRecording() {
     actions = [];
     visitedUrls.clear();
   });
-
 }
 
-// ✅ File Download
+// ✅ Download file
 function downloadJSON(data, filename) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -102,7 +114,7 @@ function downloadJSON(data, filename) {
   URL.revokeObjectURL(url);
 }
 
-// ✅ Human-readable Name Generator
+// ✅ Name generator
 function toPascalCase(str) {
   return str
       .replace(/[^a-zA-Z0-9]+/g, ' ')
@@ -113,61 +125,39 @@ function toPascalCase(str) {
 
 function generateName(el) {
   const tag = el.tagName?.toLowerCase();
-
-  // 1. Use visible text
   const text = el.innerText?.trim();
-  if (text && text.length > 0 && text.length < 100) {
+  if (text && text.length < 100) {
     return `xpath${toPascalCase(text)}${tag === 'button' ? 'Button' : ''}`;
   }
 
-  // 2. Placeholder
   const placeholder = el.getAttribute('placeholder');
-  if (placeholder) {
-    return `xpath${toPascalCase(placeholder)}Input`;
-  }
+  if (placeholder) return `xpath${toPascalCase(placeholder)}Input`;
 
-  // 3. aria-label
   const aria = el.getAttribute('aria-label');
-  if (aria) {
-    return `xpath${toPascalCase(aria)}`;
-  }
+  if (aria) return `xpath${toPascalCase(aria)}`;
 
-  // 4. title
   const title = el.getAttribute('title');
-  if (title) {
-    return `xpath${toPascalCase(title)}`;
-  }
+  if (title) return `xpath${toPascalCase(title)}`;
 
-  // 5. label for= or parent <label>
   const label = getLabelText(el);
-  if (label) {
-    return `xpath${toPascalCase(label)}${tag === 'input' ? 'Input' : ''}`;
-  }
+  if (label) return `xpath${toPascalCase(label)}${tag === 'input' ? 'Input' : ''}`;
 
-  // 6. Fallback to ID or random
   const fallback = el.id || el.name || Math.random().toString(16).slice(2, 8);
   return `xpathGenerated${toPascalCase(fallback)}`;
 }
 
+// ✅ XPath generator
+function getXPath(el) {
+  if (!el) return '';
 
-// ✅ Text-based XPath Generator
-function getXPath(element) {
-  if (!element) return '';
+  const tag = el.tagName.toLowerCase();
+  const text = el.innerText?.trim();
+  if (text && text.length < 50) return `//${tag}[normalize-space(text())="${text}"]`;
 
-  const tag = element.tagName.toLowerCase();
-  const text = element.innerText?.trim();
-
-  // Direct visible text match
-  if (text && text.length < 50) {
-    return `//${tag}[normalize-space(text())="${text}"]`;
-  }
-
-  // Use attributes
-  const attrXPath = tryAttributeXPath(element);
+  const attrXPath = tryAttributeXPath(el);
   if (attrXPath) return attrXPath;
 
-  // ⬆️ Search up 2 levels for anchor with text
-  let current = element;
+  let current = el;
   for (let i = 0; i < 2 && current.parentElement; i++) {
     current = current.parentElement;
     const anchor = [...current.children].find(child =>
@@ -179,34 +169,20 @@ function getXPath(element) {
     }
   }
 
-  // Fallback
-  return generateFallbackXPath(element);
+  return generateFallbackXPath(el);
 }
 
-function tryAttributeXPath(element) {
-  const tag = element.tagName.toLowerCase();
+function tryAttributeXPath(el) {
+  const tag = el.tagName.toLowerCase();
 
-  if (element.getAttribute('placeholder')) {
-    return `//${tag}[@placeholder="${element.getAttribute('placeholder')}"]`;
-  }
-
-  if (element.getAttribute('aria-label')) {
-    return `//${tag}[@aria-label="${element.getAttribute('aria-label')}"]`;
-  }
-
-  if (element.getAttribute('title')) {
-    return `//${tag}[@title="${element.getAttribute('title')}"]`;
-  }
-
-  if (element.getAttribute('id')) {
-    return `//*[@id="${element.id}"]`;
-  }
+  if (el.getAttribute('placeholder')) return `//${tag}[@placeholder="${el.getAttribute('placeholder')}"]`;
+  if (el.getAttribute('aria-label')) return `//${tag}[@aria-label="${el.getAttribute('aria-label')}"]`;
+  if (el.getAttribute('title')) return `//${tag}[@title="${el.getAttribute('title')}"]`;
+  if (el.getAttribute('id')) return `//*[@id="${el.getAttribute('id')}"]`;
 
   return null;
 }
 
-
-// ✅ Label extractor
 function getLabelText(el) {
   const id = el.getAttribute('id');
   if (id) {
@@ -218,7 +194,6 @@ function getLabelText(el) {
   return '';
 }
 
-// ✅ Fallback XPath
 function generateFallbackXPath(el) {
   if (!el) return '';
   let path = '';
@@ -235,6 +210,6 @@ function generateFallbackXPath(el) {
   return path;
 }
 
-// ✅ Expose
+// ✅ Recording triggers
 window.addEventListener('start-recording', startRecording);
 window.addEventListener('stop-recording', stopRecording);
