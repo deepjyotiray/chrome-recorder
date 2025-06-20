@@ -1,20 +1,169 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Recorder Extension</title>
+  <title>Test Automation Recorder</title>
   <style>
-    button { display: block; margin: 10px 0; }
-    pre { background: #f4f4f4; padding: 10px; max-height: 300px; overflow: auto; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 12px;
+      width: 260px;
+      background-color: #f9f9f9;
+    }
+
+    button {
+      width: 100%;
+      margin: 6px 0;
+      padding: 8px 10px;
+      font-size: 13px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
+    .toggle-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 12px 0 6px;
+    }
+
+    .toggle-container span {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 22px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.4s;
+    }
+
+    input:checked + .slider {
+      background-color: #28a745;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    #frameworkLabel {
+      text-align: center;
+      font-size: 12px;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    #recordingBadge {
+      display: none;
+      background-color: red;
+      color: white;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    #advancedControls {
+      display: block;
+    }
+
+    .minimized #advancedControls {
+      display: none;
+    }
+
+    pre {
+      font-size: 10px;
+      max-height: 140px;
+      overflow: auto;
+      background: #f0f0f0;
+      padding: 6px;
+      border: 1px solid #ddd;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+
+    .minimized-toggle {
+      margin: 10px 0 5px;
+      font-size: 12px;
+      text-align: center;
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
   </style>
 </head>
-<body>
-<h3>Test Recorder</h3>
+<body id="popupBody">
+
+<div id="recordingBadge">Recording...</div>
+
 <button id="startBtn">Start Recording</button>
 <button id="stopBtn">Stop Recording</button>
-<button id="showStorageBtn">Show Storage</button>
-<button id="clearStorageBtn">Clear Chrome Storage</button>
 
-<pre id="storageView"></pre>
+<div class="toggle-container">
+  <span>Framework</span>
+  <label class="toggle-switch">
+    <input type="checkbox" id="frameworkToggle">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<p id="frameworkLabel">Cypress</p>
+
+<div id="advancedControls">
+  <button id="clearFilesBtn">Clear Test Files</button>
+  <button id="showStorageBtn"> Storage</button>
+  <button id="clearStorageBtn">Clear Storage</button>
+  <pre id="storageView"></pre>
+</div>
+
+<div class="minimized-toggle" id="toggleModeBtn">Minimize UI</div>
 
 <script src="popup.js"></script>
 </body>
